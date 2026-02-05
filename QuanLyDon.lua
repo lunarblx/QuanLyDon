@@ -104,6 +104,9 @@ end)
 
 TweenService:Create(mainFrame, TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position = finalPos}):Play()
 
+mainFrame.Active = true
+mainFrame.Draggable = false
+
 -- Hàm Thông Báo Cập Nhật
 local function triggerNotify()
     if isInitialLoad then return end
@@ -174,57 +177,6 @@ local function fetchAlias(targetBox, isManual)
     end)
 end
 
--- Nút Đóng GUI (X)
-local closeButton = Instance.new("TextButton")
-closeButton.Parent = nameHub
-closeButton.Size = UDim2.new(0, 22, 0, 22)
-closeButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-closeButton.BorderSizePixel = 0
-closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeButton.TextScaled = true
-closeButton.Font = Enum.Font.GothamBold
-closeButton.Text = "X"
-
-local function updateClosePos()
-    closeButton.Position = UDim2.new(0, mainFrame.AbsolutePosition.X + mainFrame.AbsoluteSize.X + 2, 0, mainFrame.AbsolutePosition.Y + 2)
-end
-updateClosePos()
-mainFrame:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateClosePos)
-mainFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateClosePos)
-
-closeButton.MouseButton1Click:Connect(function()
-    local slideOut = TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {Position = UDim2.new(0.5, 0, -0.2, 0)})
-    slideOut:Play()
-    slideOut.Completed:Connect(function() nameHub:Destroy() end)
-end)
-
--- Nút Settings
-local settingButton = Instance.new("TextButton")
-settingButton.Parent = nameHub
-settingButton.Size = UDim2.new(0, 22, 0, 22)
-settingButton.BackgroundColor3 = Color3.fromRGB(50, 50, 200)
-settingButton.BorderSizePixel = 0
-settingButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-settingButton.TextScaled = true
-settingButton.Font = Enum.Font.GothamBold
-settingButton.Text = "⚙"
-
-local function updateSettingPos()
-    settingButton.Position = UDim2.new(0, mainFrame.AbsolutePosition.X + mainFrame.AbsoluteSize.X + 2, 0, mainFrame.AbsolutePosition.Y + 26)
-end
-updateSettingPos()
-mainFrame:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateSettingPos)
-mainFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateSettingPos)
-
--- Reload Alias
-local updateBtn = Instance.new("TextButton", nameHub)
-updateBtn.Size = UDim2.new(0, 22, 0, 22)
-updateBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-updateBtn.Text = "♻️"
-updateBtn.TextColor3 = Color3.new(1,1,1)
-updateBtn.TextScaled = true
-updateBtn.Font = Enum.Font.GothamBold
-
 local function updatePositions()
     local pos = mainFrame.AbsolutePosition
     local size = mainFrame.AbsoluteSize
@@ -255,6 +207,9 @@ local sLayout = Instance.new("UIListLayout", serverGui)
 sLayout.Padding = UDim.new(0, 5)
 sLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 sLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+serverGui.Active = true
+serverGui.Draggable = false
 
 -- Tiêu đề
 local sTitle = Instance.new("TextLabel", serverGui)
@@ -357,78 +312,6 @@ bottomLayout.FillDirection = Enum.FillDirection.Horizontal
 bottomLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 bottomLayout.Padding = UDim.new(0, 4)
 
--- Nút Ẩn/Hiện GUI
-local toggleGuiBtn = Instance.new("TextButton", bottomControlFrame)
-toggleGuiBtn.Size = UDim2.new(0.31, 0, 1, 0);
-toggleGuiBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30);
-toggleGuiBtn.TextColor3 = Color3.new(1, 1, 1);
-toggleGuiBtn.Text = "Ẩn GUI";
-toggleGuiBtn.Font = Enum.Font.GothamBold;
-toggleGuiBtn.TextSize = 10;
-Instance.new("UICorner", toggleGuiBtn)
-
--- Lock Position Server Manager GUI
-local lockBtn = Instance.new("TextButton", bottomControlFrame)
-lockBtn.Size = UDim2.new(0.31, 0, 1, 0);
-lockBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0);
-lockBtn.Text = "🔓 Unlock Srv";
-lockBtn.TextColor3 = Color3.new(1, 1, 1);
-lockBtn.Font = Enum.Font.GothamBold;
-lockBtn.TextSize = 9;
-Instance.new("UICorner", lockBtn)
-
--- Lock Position Main GUI
-local lockMainBtn = Instance.new("TextButton", bottomControlFrame)
-lockMainBtn.Size = UDim2.new(0.31, 0, 1, 0);
-lockMainBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0);
-lockMainBtn.Text = "🔓 Unlock Main";
-lockMainBtn.TextColor3 = Color3.new(1, 1, 1);
-lockMainBtn.Font = Enum.Font.GothamBold;
-lockMainBtn.TextSize = 9;
-Instance.new("UICorner", lockMainBtn)
-
-local guiVisible = true
-local serverWasOpen = true 
-
--- Logic Hide/Show Main GUI
-toggleGuiBtn.MouseButton1Click:Connect(function()
-    guiVisible = not guiVisible
-    mainFrame.Visible = guiVisible; closeButton.Visible = guiVisible; settingButton.Visible = guiVisible; updateBtn.Visible = guiVisible
-    if not guiVisible then serverWasOpen = serverGui.Visible; serverGui.Visible = false else serverGui.Visible = serverWasOpen end
-    toggleGuiBtn.Text = guiVisible and "Ẩn GUI" or "Hiện GUI"
-    toggleGuiBtn.BackgroundColor3 = guiVisible and Color3.fromRGB(30, 30, 30) or Color3.fromRGB(0, 150, 0)
-end)
-
--- Logic Lock Server GUI
-local isLocked = false
-lockBtn.MouseButton1Click:Connect(function()
-    isLocked = not isLocked
-    serverGui.Draggable = not isLocked
-    
-    if isLocked then
-        serverGui.AnchorPoint = Vector2.new(1, 1)
-        local tween = TweenService:Create(serverGui, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-            Position = UDim2.new(1, -10, 1, -10)
-        })
-        tween:Play()
-        
-        lockBtn.Text = "🔒 Lock Srv"
-        lockBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-    else
-        lockBtn.Text = "🔓 Unlock Srv"
-        lockBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-    end
-end)
-
--- Logic Lock Main GUI
-local mainLocked = false
-lockMainBtn.MouseButton1Click:Connect(function()
-    mainLocked = not mainLocked
-    mainFrame.Draggable = not mainLocked
-    lockMainBtn.Text = mainLocked and "🔒 Lock Main" or "🔓 Unlock Main"
-    lockMainBtn.BackgroundColor3 = mainLocked and Color3.fromRGB(150, 0, 0) or Color3.fromRGB(0, 150, 0)
-end)
-
 -- Hiển Thị Đơn Hàng
 local jobFrame = Instance.new("Frame", mainFrame)
 jobFrame.Size = UDim2.new(0.85, 0, 0.5, 0);
@@ -462,10 +345,6 @@ nameLabel.Text = "Tên: " .. hideName(player.Name);
 nameLabel.Font = Enum.Font.GothamBold
 
 fetchAlias(jobBox)
-updateBtn.MouseButton1Click:Connect(function()
-    fetchAlias(jobBox)
-    TweenService:Create(updateBtn, TweenInfo.new(0.5, Enum.EasingStyle.Linear), {Rotation = updateBtn.Rotation + 360}):Play()
-end)
 
 -- Setting GUI
 local smallGui = Instance.new("Frame")
@@ -528,20 +407,6 @@ fpsCapBox.Font = Enum.Font.GothamBold;
 fpsCapBox.TextColor3 = Color3.new(1, 1, 1);
 fpsCapBox.Text = "0"
 
--- Save & Load Position
-local saveLoadFrame = Instance.new("Frame", smallGui)
-saveLoadFrame.Size = UDim2.new(1, -10, 0, 30)
-saveLoadFrame.BackgroundTransparency = 1
-
-local savePosBtn = Instance.new("TextButton", saveLoadFrame)
-savePosBtn.Size = UDim2.new(0.48, 0, 1, 0)
-savePosBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
-savePosBtn.Text = "Save Server Pos"
-savePosBtn.TextColor3 = Color3.new(1,1,1)
-savePosBtn.Font = Enum.Font.GothamBold
-savePosBtn.TextScaled = true
-Instance.new("UICorner", savePosBtn)
-
 local loadPosBtn = Instance.new("TextButton", saveLoadFrame)
 loadPosBtn.Size = UDim2.new(0.48, 0, 1, 0)
 loadPosBtn.Position = UDim2.new(0.52, 0, 0, 0)
@@ -551,32 +416,6 @@ loadPosBtn.TextColor3 = Color3.new(1,1,1)
 loadPosBtn.Font = Enum.Font.GothamBold
 loadPosBtn.TextScaled = true
 Instance.new("UICorner", loadPosBtn)
-
--- Logic Save Position
-savePosBtn.MouseButton1Click:Connect(function()
-    local pos = serverGui.Position
-    local data = string.format("%f,%d,%f,%d", pos.X.Scale, pos.X.Offset, pos.Y.Scale, pos.Y.Offset)
-    if writefile then
-        writefile(FILE_NAME, data)
-        savePosBtn.Text = "✅ Saved!"
-        task.wait(1)
-        savePosBtn.Text = "Save Server Pos"
-    end
-end)
-
--- Logic Load Position
-loadPosBtn.MouseButton1Click:Connect(function()
-    if isfile and isfile(FILE_NAME) then
-        local data = readfile(FILE_NAME)
-        local parts = string.split(data, ",")
-        if #parts == 4 then
-            serverGui.Position = UDim2.new(tonumber(parts[1]), tonumber(parts[2]), tonumber(parts[3]), tonumber(parts[4]))
-            loadPosBtn.Text = "✅ Loaded!"
-            task.wait(1)
-            loadPosBtn.Text = "Load Server Pos"
-        end
-    end
-end)
 
 -- Auto Load Positon
 task.spawn(function()
@@ -659,10 +498,6 @@ RunService.RenderStepped:Connect(function()
 end)
 
 local isOpen = false
-settingButton.MouseButton1Click:Connect(function()
-    isOpen = not isOpen
-    smallGui.Visible = isOpen
-end)
 
 -- Auto Reload Alias
 local autoReloadInterval = 120 -- Thời Gian Reload Alias
