@@ -222,10 +222,14 @@ local function create(class, props)
 end
 
 --// ScreenGui
+local CoreGui = game:GetService("CoreGui")
+
 local gui = create("ScreenGui", {
     Name = "FrierenServerManager",
-    Parent = player:WaitForChild("PlayerGui"),
-    ResetOnSpawn = false
+    Parent = CoreGui, -- 👈 ĐÈ LÊN MỌI OBJECT
+    ResetOnSpawn = false,
+    DisplayOrder = 9999,
+    ZIndexBehavior = Enum.ZIndexBehavior.Global
 })
 
 --// Main Frame
