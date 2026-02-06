@@ -5,6 +5,16 @@ end
 local player = game:GetService("Players").LocalPlayer 
 local playerGui = player:WaitForChild("PlayerGui")
 
+-- ===== FIX GUI SERVER MANAGER BỊ ĐÈ =====
+do
+    local pg = playerGui
+    local g = pg:FindFirstChild("FrierenServerManager")
+    if g then
+        g:Destroy()
+    end
+end
+-- ======================================
+
 local player = game:GetService("Players").LocalPlayer 
 local playerGui = player:WaitForChild("PlayerGui")
 local TweenService = game:GetService("TweenService")
@@ -187,117 +197,236 @@ end
 mainFrame:GetPropertyChangedSignal("AbsolutePosition"):Connect(updatePositions)
 
 -- Server Manager GUI
-local serverGui = Instance.new("Frame", nameHub)
-serverGui.Name = "ServerManagerFrame"
-serverGui.Size = UDim2.new(0, 190, 0, 215) 
-serverGui.AnchorPoint = Vector2.new(1, 1) 
-serverGui.Position = UDim2.new(1, -10, 1, -10) 
-serverGui.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-serverGui.BackgroundTransparency = 0.1
-serverGui.Visible = true 
-serverGui.Active = true
-serverGui.Draggable = true
-Instance.new("UICorner", serverGui).CornerRadius = UDim.new(0, 6)
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
 
-local sStroke = Instance.new("UIStroke", serverGui)
-sStroke.Color = Color3.fromRGB(255, 120, 0)
-sStroke.Thickness = 2
+local player = Players.LocalPlayer
 
-local sLayout = Instance.new("UIListLayout", serverGui)
-sLayout.Padding = UDim.new(0, 5)
-sLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-sLayout.SortOrder = Enum.SortOrder.LayoutOrder
+-- Save File
+local SAVE_FILE = "ServerManager.json"
 
-serverGui.Active = true
-serverGui.Draggable = false
+-- Frieren Version
+local FRIEREN_BLUE = Color3.fromRGB(65, 185, 225)
+local LOCK_COLOR = Color3.fromRGB(255, 100, 100)
+local BG_COLOR = Color3.fromRGB(10, 15, 20)
 
--- Tiêu đề
-local sTitle = Instance.new("TextLabel", serverGui)
-sTitle.Size = UDim2.new(1, 0, 0, 30)
-sTitle.BackgroundTransparency = 1
-sTitle.Text = "Server Manager"
-sTitle.TextColor3 = Color3.fromRGB(255, 120, 0)
-sTitle.Font = Enum.Font.GothamBold
-sTitle.TextSize = 13
-sTitle.LayoutOrder = 1
+--// UI Helper
+local function create(class, props)
+    local obj = Instance.new(class)
+    for k, v in pairs(props) do
+        obj[k] = v
+    end
+    return obj
+end
 
--- Ô Nhập Jobid
-local jobInput = Instance.new("TextBox", serverGui)
-jobInput.Size = UDim2.new(0.85, 0, 0, 30)
-jobInput.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-jobInput.PlaceholderText = "Type Here"
-jobInput.Text = ""
-jobInput.TextColor3 = Color3.new(1, 1, 1)
-jobInput.Font = Enum.Font.Gotham
-jobInput.TextScaled = true 
-jobInput.LayoutOrder = 2
-Instance.new("UICorner", jobInput)
+--// ScreenGui
+local gui = create("ScreenGui", {
+    Name = "FrierenServerManager",
+    Parent = player:WaitForChild("PlayerGui"),
+    ResetOnSpawn = false
+})
 
--- Show PlaceID
-local pIdLabel = Instance.new("TextLabel", serverGui)
-pIdLabel.Size = UDim2.new(0.9, 0, 0, 15)
-pIdLabel.BackgroundTransparency = 1
-pIdLabel.Text = "ID: " .. game.PlaceId
-pIdLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-pIdLabel.Font = Enum.Font.Gotham
-pIdLabel.TextSize = 12
-pIdLabel.LayoutOrder = 3
+--// Main Frame
+local main = create("Frame", {
+    Parent = gui,
+    Size = UDim2.new(0, 240, 0, 95),
+    Position = UDim2.new(1, -10, 0, 10), 
+    AnchorPoint = Vector2.new(1, 0),
+    BackgroundColor3 = BG_COLOR,
+    BackgroundTransparency = 0.1,
+    Active = true,
+    Draggable = true
+})
+create("UICorner", {Parent = main, CornerRadius = UDim.new(0, 8)})
+create("UIStroke", {Parent = main, Color = FRIEREN_BLUE, Thickness = 2, Transparency = 0.2})
 
-local spacer = Instance.new("Frame", serverGui)
-spacer.Size = UDim2.new(1, 0, 0, 8)
-spacer.BackgroundTransparency = 1
-spacer.LayoutOrder = 4
+--// Top Bar
+local topBar = create("Frame", {
+    Parent = main,
+    Size = UDim2.new(1, -16, 0, 25),
+    Position = UDim2.new(0, 8, 0, 8),
+    BackgroundTransparency = 1
+})
 
--- Join Server
-local joinBtn = Instance.new("TextButton", serverGui)
-joinBtn.Size = UDim2.new(0.85, 0, 0, 30)
-joinBtn.BackgroundColor3 = Color3.fromRGB(0, 102, 204)
-joinBtn.Text = "Join Server ID"
-joinBtn.TextColor3 = Color3.new(1, 1, 1)
-joinBtn.Font = Enum.Font.GothamBold
-joinBtn.TextSize = 11
-joinBtn.LayoutOrder = 5
-Instance.new("UICorner", joinBtn)
+local refreshBtn = create("TextButton", {
+    Parent = topBar,
+    Size = UDim2.new(0, 22, 0, 22),
+    BackgroundColor3 = FRIEREN_BLUE,
+    Text = "♻",
+    TextColor3 = Color3.new(1,1,1),
+    Font = Enum.Font.GothamBold,
+    TextSize = 14
+})
+create("UICorner", {Parent = refreshBtn, CornerRadius = UDim.new(0,4)})
 
-joinBtn.MouseButton1Click:Connect(function()
-    local id = jobInput.Text:gsub("%s+", "")
-    if #id > 10 then 
-        game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, id, player)
-    else
-        joinBtn.Text = "ID Sai!"; task.wait(1); joinBtn.Text = "Join Server ID"
+local lockBtn = create("TextButton", {
+    Parent = topBar,
+    Size = UDim2.new(0, 22, 0, 22),
+    Position = UDim2.new(1, -22, 0, 0),
+    BackgroundColor3 = FRIEREN_BLUE,
+    Text = "🔓",
+    TextColor3 = Color3.new(1,1,1),
+    Font = Enum.Font.GothamBold,
+    TextSize = 14
+})
+create("UICorner", {Parent = lockBtn, CornerRadius = UDim.new(0,4)})
+
+local idDisplay = create("TextLabel", {
+    Parent = topBar,
+    Size = UDim2.new(1, -90, 1, 0),
+    Position = UDim2.new(0, 30, 0, 0),
+    BackgroundTransparency = 1,
+    Text = "PlaceID: "..game.PlaceId,
+    TextColor3 = FRIEREN_BLUE,
+    Font = Enum.Font.GothamMedium,
+    TextScaled = true,
+    TextXAlignment = Enum.TextXAlignment.Left
+})
+create("UITextSizeConstraint", {Parent = idDisplay, MaxTextSize = 13})
+
+--// Middle Row
+local midRow = create("Frame", {
+    Parent = main,
+    Size = UDim2.new(1, -16, 0, 28),
+    Position = UDim2.new(0, 8, 0, 38),
+    BackgroundTransparency = 1
+})
+
+local jobInput = create("TextBox", {
+    Parent = midRow,
+    Size = UDim2.new(0.7, 0, 1, 0),
+    BackgroundColor3 = Color3.fromRGB(25,30,40),
+    PlaceholderText = "Enter Job ID...",
+    Text = "",
+    TextColor3 = Color3.new(1,1,1),
+    Font = Enum.Font.Gotham,
+    TextScaled = true,
+    ClearTextOnFocus = false
+})
+create("UICorner", {Parent = jobInput, CornerRadius = UDim.new(0,4)})
+create("UITextSizeConstraint", {Parent = jobInput, MaxTextSize = 12})
+
+local copyBtn = create("TextButton", {
+    Parent = midRow,
+    Size = UDim2.new(0.25, 0, 1, 0),
+    Position = UDim2.new(0.75, 0, 0, 0),
+    BackgroundColor3 = Color3.fromRGB(40,120,160),
+    Text = "📋",
+    TextColor3 = Color3.new(1,1,1),
+    TextSize = 14
+})
+create("UICorner", {Parent = copyBtn, CornerRadius = UDim.new(0,4)})
+
+--// Bottom Button
+local hopBtn = create("TextButton", {
+    Parent = main,
+    Size = UDim2.new(1, -16, 0, 24),
+    Position = UDim2.new(0, 8, 1, -28),
+    BackgroundColor3 = FRIEREN_BLUE,
+    Text = "Join Server",
+    TextColor3 = Color3.new(1,1,1),
+    Font = Enum.Font.GothamBold,
+    TextScaled = true
+})
+create("UICorner", {Parent = hopBtn, CornerRadius = UDim.new(0,4)})
+create("UITextSizeConstraint", {Parent = hopBtn, MaxTextSize = 11})
+
+--// ===== LOGIC =====
+local isLocked = false
+
+-- SAVE (CẤU TRÚC CŨ)
+local function SaveServerManager()
+    if writefile then
+        writefile(SAVE_FILE, HttpService:JSONEncode({
+            Position = {
+                main.Position.X.Scale,
+                main.Position.X.Offset,
+                main.Position.Y.Scale,
+                main.Position.Y.Offset
+            },
+            Locked = isLocked
+        }))
+    end
+end
+
+-- SET LOCK
+local function setLockState(state)
+    isLocked = state
+    main.Draggable = not state
+    lockBtn.Text = state and "🔒" or "🔓"
+    lockBtn.BackgroundColor3 = state and LOCK_COLOR or FRIEREN_BLUE
+end
+
+-- LOAD (CẤU TRÚC CŨ)
+if isfile and isfile(SAVE_FILE) then
+    pcall(function()
+        local data = HttpService:JSONDecode(readfile(SAVE_FILE))
+        if data.Position then
+            main.Position = UDim2.new(
+                data.Position[1],
+                data.Position[2],
+                data.Position[3],
+                data.Position[4]
+            )
+        end
+        if data.Locked ~= nil then
+            setLockState(data.Locked)
+        end
+    end)
+end
+
+-- Auto Save Position
+local lastSave = 0
+main:GetPropertyChangedSignal("Position"):Connect(function()
+    if tick() - lastSave > 0.3 then
+        lastSave = tick()
+        SaveServerManager()
     end
 end)
 
--- Copy JobID
-local copyBtn = Instance.new("TextButton", serverGui)
-copyBtn.Size = UDim2.new(0.85, 0, 0, 30)
-copyBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0) 
-copyBtn.Text = "Copy JobID"
-copyBtn.TextColor3 = Color3.new(1, 1, 1)
-copyBtn.Font = Enum.Font.GothamBold
-copyBtn.TextSize = 10
-copyBtn.LayoutOrder = 6
-Instance.new("UICorner", copyBtn)
-
-copyBtn.MouseButton1Click:Connect(function()
-    setclipboard(game.JobId)
-    copyBtn.Text = "Copied!"; task.wait(1); copyBtn.Text = "Copy JobID"
+-- Lock Button
+lockBtn.MouseButton1Click:Connect(function()
+    setLockState(not isLocked)
+    SaveServerManager()
 end)
 
--- Rejoin Server
-local rejoinBtn = Instance.new("TextButton", serverGui)
-rejoinBtn.Size = UDim2.new(0.85, 0, 0, 30)
-rejoinBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
-rejoinBtn.Text = "Rejoin Server"
-rejoinBtn.TextColor3 = Color3.new(1, 1, 1)
-rejoinBtn.Font = Enum.Font.GothamBold
-rejoinBtn.TextSize = 11
-rejoinBtn.LayoutOrder = 7
-Instance.new("UICorner", rejoinBtn)
+-- Rejoin
+refreshBtn.MouseButton1Click:Connect(function()
+    hopBtn.Text = "Rejoining..."
+    TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, player)
+end)
 
-rejoinBtn.MouseButton1Click:Connect(function()
-    rejoinBtn.Text = "Rejoining..."
-    game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, player)
+-- Join JobId
+hopBtn.MouseButton1Click:Connect(function()
+    local id = jobInput.Text:gsub("%s+", "")
+    if #id > 5 then
+        hopBtn.Text = "Teleporting..."
+        TeleportService:TeleportToPlaceInstance(game.PlaceId, id, player)
+    else
+        hopBtn.Text = "ID REQUIRED!"
+        task.wait(1)
+        hopBtn.Text = "Join Server"
+    end
+end)
+
+-- Copy JobId
+copyBtn.MouseButton1Click:Connect(function()
+    if setclipboard then
+        setclipboard(game.JobId)
+        copyBtn.Text = "✔"
+        task.wait(1)
+        copyBtn.Text = "📋"
+    end
+end)
+
+-- HOTKEY: NUMPAD 3 TOGGLE
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.KeypadThree then
+        main.Visible = not main.Visible
+    end
 end)
 
 -- Cập Nhật 3 Nút Dưới Main Frame
@@ -588,12 +717,18 @@ end)
 task.wait(5)
 isInitialLoad = false
 
--- Tự động tính toán lại vị trí khi thay đổi kích thước cửa sổ (Dành cho Server Manager)
-workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
-    serverGui.Position = UDim2.new(1, -10, 1, -10)
-end)
+-- Tự động tính toán lại vị trí khi thay đổi kích thước cửa sổ
+-- (Áp dụng cho Frieren Server Manager)
 
-local Players = game:GetService("Players")
+local camera = workspace.CurrentCamera
+
+camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+    -- Nếu GUI KHÔNG bị khóa thì mới tự căn lại về góc phải trên
+    if not isLocked then
+        main.Position = UDim2.new(1, -10, 0, 10)
+        SaveServerManager()
+    end
+end)
 
 -- Hàm xử lý chuỗi: Giữ lại 3 ký tự đầu, còn lại thay bằng *
 local function maskString(str)
